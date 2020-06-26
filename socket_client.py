@@ -1,6 +1,5 @@
 ###################################################################
 #*- 								                            -*#
-#*- coding	: utf-8 	        			                    -*#
 #*- function	: client                                 	    -*#
 #*- serverhost	: 60.205.247.173				                -*#
 #*- port	: 10000 						                    -*#
@@ -8,11 +7,12 @@
 #*-			 					                                -*#
 ###################################################################
 
-
+# -*- coding:utf-8 -*-
 import socket
 import threading
 import os
 import get
+import struct
 
 def recv_msg(s):    
     while True:
@@ -59,10 +59,10 @@ def download(s,data):
             print ("start receiving...")
             while not recvd_size == filesize:
                 if filesize - recvd_size > 1024:
-                    data = conn.recv(1024)
+                    data = s.recv(1024)
                     recvd_size += len(data)
                 else:
-                    data = conn.recv(filesize - recvd_size)
+                    data = s.recv(filesize - recvd_size)
                     recvd_size = filesize
                 fp.write(data)
             fp.close()
@@ -82,6 +82,7 @@ if __name__ == '__main__':
         cmd,data = request.split(" ")
         if cmd == 'upload':
             upload(socket_client,data)
+            print("upload is finished")
         elif cmd == 'download':
             download(socket_client,data)
         elif cmd == 'chat':
