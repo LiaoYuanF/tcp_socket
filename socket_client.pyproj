@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>d2dde7c2-0c1b-4b49-aa52-a5295f27ec79</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>socket_client.py</StartupFile>
+    <StartupFile>send_file.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,11 +22,20 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="client.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="get.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="recv_file.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="socket_client.py" />
     <Compile Include="socket_server.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="send_file.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
