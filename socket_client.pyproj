@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>d2dde7c2-0c1b-4b49-aa52-a5295f27ec79</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>send_file.py</StartupFile>
+    <StartupFile>final_client.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -23,6 +23,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="client.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="final_client.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="final_server.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="get.py">
