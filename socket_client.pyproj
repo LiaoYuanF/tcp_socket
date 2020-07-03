@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>d2dde7c2-0c1b-4b49-aa52-a5295f27ec79</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>final_client.py</StartupFile>
+    <StartupFile>send_file.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

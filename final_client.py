@@ -7,6 +7,57 @@ import re
 import os
 import struct
 import sys
+import pyaudio
+import wave
+class Audio:
+    def __init__(self):
+        self.CHUNK = 1024
+        self.FORMAT = pyaudio.paInt16
+        self.CHANNELS = 2
+        self.RATE = 16000
+        self.p = pyaudio.PyAudio()
+    def record(self,WAVE_OUTPUT_FILENAME,RECORD_SECONDS):
+        stream = self.p.open(format=self.FORMAT,
+                        channels=self.CHANNELS,
+                        rate=self.RATE,
+                        input=True,
+                        frames_per_buffer=self.CHUNK)
+        print("开始录音,请说话......")
+        frames = []
+        for i in range(0, int(self.RATE / self.CHUNK * RECORD_SECONDS)):
+            data = stream.read(self.CHUNK)
+            frames.append(data)
+        print("录音结束,请闭嘴!")
+        stream.stop_stream()
+        stream.close()
+        self.p.terminate()
+        wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+        wf.setnchannels(self.CHANNELS)
+        wf.setsampwidth(self.p.get_sample_size(self.FORMAT))
+        wf.setframerate(self.RATE)
+        wf.writeframes(b''.join(frames))
+        wf.close()
+    def play_record(self):
+        f = wave.open(r"tem.wav", "rb")
+        # instantiate PyAudio
+        p = self.p
+        # open stream
+        stream = p.open(format=p.get_format_from_width(f.getsampwidth()),
+                        channels=f.getnchannels(),
+                        rate=f.getframerate(),
+                        output=True)
+        # read data
+        data = f.readframes(self.CHUNK)
+        # paly stream
+        while data != '':
+            stream.write(data)
+            data = f.readframes(self.CHUNK)
+        # stop stream
+        stream.stop_stream()
+        stream.close()
+        # close PyAudio
+        p.terminate()
+        os.remove("tem.wav")
 class Client:
     """创建客户端的模板类"""
     def __init__(self):
@@ -15,7 +66,6 @@ class Client:
         #self.client_socket.connect(('127.0.0.1', 7890))
         addr = ("60.205.247.173", 10000)
         self.client_socket .connect(addr)
-
     def send_login_info(self, username, password):
         """
         发送登录用户的用户名和密码给服务器验证，并return验证结果
@@ -25,11 +75,9 @@ class Client:
         """
         # 告诉服务器本次请求的类型，“1” 是验证登录
         self.client_socket.sendall("1".encode("utf-8"))
-
         # 将用户名和密码按照一定规律组合后一起发送给服务器
         username_psw = username + "#!#!" + password
         self.client_socket.sendall(username_psw.encode("utf-8"))
-
         # 获取服务器的返回值，"1"代表通过，“0”代表不通过，再放回True or False
         check_result = self.client_socket.recv(1024).decode("utf-8")
         return check_result
@@ -55,12 +103,8 @@ class Client:
         # 获取服务器返回的结果
         check_result = self.client_socket.recv(1024).decode("utf-8")
         return check_result
-
     def upload_file(self,filepath):
         filepath=filepath.strip()
-        #print(filepath)
-        #print(type(filepath))
-        #print(os.path.isfile(filepath))
         if os.path.isfile(filepath):
             self.client_socket.sendall("4".encode("utf-8"))
             fileinfo_size=struct.calcsize('128sl') #定义打包规则,受linux与window操作系统的位数差异影响.使用128sl会越界
@@ -82,14 +126,15 @@ class Client:
             print ("send over...")
         else:
             print("can't find the file")
-
     def download_file(self,filename):
     #while True:
         self.client_socket.sendall("5".encode("utf-8"))
+        time.sleep(2)
+        #self.client_socket.sendall(filename.encode("utf-8"))
         fileinfo_size=struct.calcsize('128sl') #定义打包规则,受linux与window操作系统的位数差异影响.使用128sl会越界
             #定义文件头信息，包含文件名和文件大小
-        fhead = struct.pack(b'128sl',bytes(os.path.basename(filename), encoding='utf-8'),os.stat(filename).st_size)
-            
+        fhead = struct.pack(b'128sl',bytes(os.path.basename(filename), encoding='utf-8'),os.stat("jamon_client.py").st_size)
+        self.client_socket.send(fhead)
             
      
     def send_msg(self, content):
@@ -373,10 +418,11 @@ class MainPanel:
         self.main_frame = Tk()
         self.client = client
         self.username = username
+        self.record_num=0
         self.online_list_box = None
         self.msg_box = None
         self.input_box = None
-
+        self.audio=Audio()
     def set_panel_position(self):
         """
         设置聊天主界面在屏幕的位置和大小
@@ -459,11 +505,12 @@ class MainPanel:
         """
         设置发送和清空按钮
         """
-        Button(self.main_frame, text="Send", bg="lightblue", font=("Microsoft Yahei", 14), fg="black", command=self.send_func).grid(row=3, column=1, pady=5, padx=10, sticky=W, ipady=3, ipadx=10)
-        Button(self.main_frame, text="Clear", bg="lightblue", font=("Microsoft Yahei", 14), fg="black", command=self.clear_input_box).grid(row=3, column=1, pady=5, sticky=W, padx=(110, 0), ipady=3, ipadx=10)
-        Button(self.main_frame, text="Upload", bg="lightblue", font=("Microsoft Yahei", 10), fg="black", command=self.upload_func).grid(row=3, column=1, pady=5, padx=220, sticky=W, ipady=3, ipadx=10)
-        Button(self.main_frame, text="download", bg="lightblue", font=("Microsoft Yahei", 10), fg="black", command=self.download_func).grid(row=3, column=1, pady=5, padx=(330,0), sticky=W, ipady=3, ipadx=10)
-
+        Button(self.main_frame, text="Send", bg="lightblue", font=("Microsoft Yahei", 9), fg="black", command=self.send_func).grid(row=3, column=1, pady=5, padx=10, sticky=W, ipady=3, ipadx=10)
+        Button(self.main_frame, text="Clear", bg="lightblue", font=("Microsoft Yahei", 9), fg="black", command=self.clear_input_box).grid(row=3, column=1, pady=5, sticky=W, padx=(90, 0), ipady=3, ipadx=10)
+        Button(self.main_frame, text="Upload", bg="lightblue", font=("Microsoft Yahei", 9), fg="black", command=self.upload_func).grid(row=3, column=1, pady=5, padx=180, sticky=W, ipady=3, ipadx=10)
+        Button(self.main_frame, text="dnload", bg="lightblue", font=("Microsoft Yahei", 9), fg="black", command=self.download_func).grid(row=3, column=1, pady=5, padx=(270,0), sticky=W, ipady=3, ipadx=10)
+        Button(self.main_frame, text="sd_aud", bg="lightblue", font=("Microsoft Yahei", 9), fg="black",command=self.sd_aud).grid(row=3, column=1, pady=5, padx=(360, 0), sticky=W, ipady=3, ipadx=10)
+        Button(self.main_frame, text="play", bg="lightblue", font=("Microsoft Yahei", 9), fg="black",command=self.play).grid(row=3, column=1, pady=5, padx=(450, 0), sticky=W, ipady=3, ipadx=10)
     def show(self):
         """主界面布局"""
         self.set_panel_position()
@@ -517,28 +564,32 @@ class MainPanel:
                         notice = ret.group(2)  # 将通知提取出来
                         self.show_notice(notice)
                         fileinfo_size=struct.calcsize('128sl')
-                        buf = self.client_socket.recv(fileinfo_size)
+                        buf = self.client.client_socket.recv(fileinfo_size)
                         if buf: #如果不加这个if，第一个文件传输完成后会自动走到下一句
                             filename,filesize =struct.unpack('128sl',buf)
                             filename_f = filename.decode().strip('\x00')
-                            filenewname = os.path.join('new_'+ filename_f)
+                            filenewname = filename_f
+                            if filenewname[-1:]=="a":
+                                filenewname="tem.wav"
                             #print ('file new name is %s, filesize is %s' %(filenewname,filesize))
                             recvd_size = 0 #定义接收了的文件大小
                             #断点续传
-                            if os.path.exists(filenewname):
-                                recvd_size = os.path.getsize(filenewname)
-                            #self.client_socket.send(str(recvd_size).encode())
+                            #if os.path.exists(filenewname):
+                            #    recvd_size = os.path.getsize(filenewname)
+                            #self.client.client_socket.send(str(recvd_size).encode())
                             file = open(filenewname,'ab')
                             print ('stat receiving...')
                             while not recvd_size == filesize:
                                 if filesize - recvd_size > 1024:
-                                    rdata = self.client_socket.recv(1024)
+                                    rdata = self.client.client_socket.recv(1024)
                                     recvd_size += len(rdata)
                                 else:
-                                    rdata = self.client_socket.recv(filesize - recvd_size)
+                                    rdata = self.client.client_socket.recv(filesize - recvd_size)
                                     recvd_size = filesize
                                 file.write(rdata)
                             file.close()
+                            if filenewname[-3:]=="wav":
+                                self.audio.play_record()
                         print ('receive done')
                          #connection.close()
             except Exception as ret:
@@ -600,15 +651,40 @@ class MainPanel:
         """
         content = self.get_input_box_content()
         self.client.upload_file(content)
+        time.sleep(2)
+        self.client.send_msg("Upload "+content)
         self.clear_input_box()
     def download_func(self):
         """
         封装到主界面中的发送消息按钮中
         """
         content = self.get_input_box_content()
+        content=content.strip()
         self.client.download_file(content)
         self.clear_input_box()
-
+    def sd_aud(self):
+        """
+        封装到主界面中的发送消息按钮中
+        """
+        content = self.get_input_box_content()
+        file_name=str(self.username)+str(self.record_num)+".a"
+        self.audio.record(file_name,int(content))
+        time.sleep(2)
+        self.client.send_msg("record " + file_name)
+        time.sleep(2)
+        self.clear_input_box()
+    def play(self):
+        """
+        封装到主界面中的发送消息按钮中
+        """
+        content = self.get_input_box_content()
+        content=content.strip()
+        self.client.download_file(content)
+        # while True:
+        #     if os.path.exists("tem.wav"):
+        #         break
+        # self.audio.play_record()
+        self.clear_input_box()
     def close(self):
         if self.main_frame == None:
             print("未显示界面")
